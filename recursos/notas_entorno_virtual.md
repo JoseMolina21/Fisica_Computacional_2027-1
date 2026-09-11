@@ -27,9 +27,10 @@ cada quien lo crea una vez en su propia máquina.
 Desde la raíz del repositorio (la carpeta que contiene `fiscomp/`,
 `practicas/`, `pyproject.toml`, etc.):
 
-```bash
-python3 -m venv .venv
-```
+| Sistema | Comando |
+|---|---|
+| Linux / macOS | `python3 -m venv .venv` |
+| Windows | `python -m venv .venv` |
 
 Esto crea la carpeta `.venv/` con una copia de Python adentro. No
 hace falta volver a correr este comando salvo que borres `.venv/` o
@@ -82,12 +83,14 @@ que borres y recrees `.venv/`).
 
 ## 5. Comprobar que quedó bien
 
-```bash
-python3 -c "import fiscomp; print(fiscomp.__file__)"
-```
+| Sistema | Comando |
+|---|---|
+| Linux / macOS | `python3 -c "import fiscomp; print(fiscomp.__file__)"` |
+| Windows | `python -c "import fiscomp; print(fiscomp.__file__)"` |
 
 Debe imprimir una ruta dentro de tu copia del repositorio, algo como
-`/ruta/a/Cursos/fiscomp/__init__.py`.
+`/ruta/a/Cursos/fiscomp/__init__.py` (o `C:\ruta\a\Cursos\fiscomp\__init__.py`
+en Windows).
 
 ## 6. Desactivar el entorno virtual
 
@@ -102,6 +105,8 @@ próxima vez con `source .venv/bin/activate`.
 
 ## 7. Resumen rápido
 
+**Linux / macOS (bash o zsh):**
+
 ```bash
 # Una sola vez por máquina
 python3 -m venv .venv
@@ -112,6 +117,34 @@ pip install -e .
 source .venv/bin/activate
 ...
 deactivate    # al terminar, opcional
+```
+
+**Windows (PowerShell):**
+
+```powershell
+# Una sola vez por máquina
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e .
+
+# Cada vez que abras una terminal nueva para trabajar en el curso
+.venv\Scripts\Activate.ps1
+...
+deactivate    # al terminar, opcional
+```
+
+**Windows (cmd.exe):**
+
+```bat
+:: Una sola vez por máquina
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -e .
+
+:: Cada vez que abras una terminal nueva para trabajar en el curso
+.venv\Scripts\activate.bat
+...
+deactivate    :: al terminar, opcional
 ```
 
 > **Consejo:** si algo se ve raro (`ModuleNotFoundError: No module
