@@ -1,0 +1,45 @@
+REPORTE DEL EXPERIMENTO DE MILLIKAN
+=======================================================
+
+RESUMEN
+-------------------------------------------------------
+Experimento: 1
+Responsable: 1
+Voltaje (V): 1.0
+Distancia (m): 1.0
+Viscosidad (Pa·s): 1.0
+Valores únicos: {1.0}
+Carga estimada (C): 1.0
+Desviación estándar (C): 0.0
+Error relativo: 6.241509074460763e+18
+Número de gotas válidas: 4
+
+
+DETALLE POR GOTA
+-------------------------------------------------------
+Gota 1:
+  Carga medida:          1.000000e+00 C
+  n (cargas elementales): 1
+  Estimación individual:  1.000000e+00 C
+
+Gota 2:
+  Carga medida:          1.000000e+00 C
+  n (cargas elementales): 1
+  Estimación individual:  1.000000e+00 C
+
+Gota 3:
+  Carga medida:          1.000000e+00 C
+  n (cargas elementales): 1
+  Estimación individual:  1.000000e+00 C
+
+Gota 4:
+  Carga medida:          1.000000e+00 C
+  n (cargas elementales): 1
+  Estimación individual:  1.000000e+00 C
+
+
+COMPARACIÓN CON EL VALOR ACEPTADO
+-------------------------------------------------------
+Valor aceptado:  1.602177e-19 C
+Nuestra estimación: 1.000000e+00 C
+Error relativo:  6.241509e+18

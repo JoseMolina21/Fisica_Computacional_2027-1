@@ -72,3 +72,45 @@ if __name__ == "__main__":
             f"math.sin = {exacto:.12f}  "
             f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
         )
+        
+"""Estas son las funciones que definí para el ejercicio 3"""
+
+def coseno(x):
+    """Coseno con serie de Taylor: 1 - x²/2! + x⁴/4! - x⁶/6! + ..."""
+    suma = 0.0
+    termino = 1.0
+    n = 0
+    while abs(termino) >= EPS:
+        suma += termino
+        n += 1
+        termino = ((-1) ** n) * (x ** (2 * n)) / factorial(2 * n)
+    return suma
+
+
+def exponencial(x):
+    """Exponencial con serie de Taylor: 1 + x + x²/2! + x³/3! + ..."""
+    suma = 0.0
+    termino = 1.0
+    n = 0
+    while abs(termino) >= EPS:
+        suma += termino
+        n += 1
+        termino = (x ** n) / factorial(n)
+    return suma
+
+
+def ln(x):
+    """Logaritmo natural usando ln((1+y)/(1-y)) con y = (x-1)/(x+1).
+    Funciona para cualquier x > 0.
+    """
+    if x <= 0:
+        raise ValueError("ln solo está definido para x > 0")
+    y = (x - 1) / (x + 1)
+    suma = 0.0
+    termino = y
+    n = 0
+    while abs(termino) >= EPS:
+        suma += termino / (2 * n + 1)
+        n += 1
+        termino = y ** (2 * n + 1)
+    return 2 * suma

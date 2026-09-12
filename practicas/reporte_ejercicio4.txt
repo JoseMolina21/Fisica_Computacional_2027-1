@@ -1,0 +1,85 @@
+REPORTE EJERCICIO 4 — Comparación con math
+============================================================
+
+x = 0.1
+----------------------------------------
+  seno:        mío=0.099833416647  math=0.099833416647  err=1.390e-16
+  coseno:      mío=0.995004165278  math=0.995004165278  err=0.000e+00
+  exponencial: mío=1.105170918076  math=1.105170918076  err=4.018e-16
+  ln:          mío=-2.302585092994  math=-2.302585092994  err=3.857e-16
+
+x = 0.5
+----------------------------------------
+  seno:        mío=0.479425538604  math=0.479425538604  err=0.000e+00
+  coseno:      mío=0.877582561890  math=0.877582561890  err=0.000e+00
+  exponencial: mío=1.648721270700  math=1.648721270700  err=2.694e-16
+  ln:          mío=-0.693147180560  math=-0.693147180560  err=3.203e-16
+
+x = 1.0
+----------------------------------------
+  seno:        mío=0.841470984808  math=0.841470984808  err=0.000e+00
+  coseno:      mío=0.540302305868  math=0.540302305868  err=0.000e+00
+  exponencial: mío=2.718281828459  math=2.718281828459  err=1.634e-16
+  ln:          mío=0.000000000000  math=0.000000000000  err=0.000e+00
+
+x = 2.0
+----------------------------------------
+  seno:        mío=0.909297426826  math=0.909297426826  err=0.000e+00
+  coseno:      mío=-0.416146836547  math=-0.416146836547  err=1.334e-16
+  exponencial: mío=7.389056098931  math=7.389056098931  err=2.404e-16
+  ln:          mío=0.693147180560  math=0.693147180560  err=3.203e-16
+
+x = 3.0
+----------------------------------------
+  seno:        mío=0.141120008060  math=0.141120008060  err=7.867e-16
+  coseno:      mío=-0.989992496600  math=-0.989992496600  err=2.243e-16
+  exponencial: mío=20.085536923188  math=20.085536923188  err=3.538e-16
+  ln:          mío=1.098612288668  math=1.098612288668  err=8.085e-16
+
+x = 4.0
+----------------------------------------
+  seno:        mío=-0.756802495308  math=-0.756802495308  err=8.802e-16
+  coseno:      mío=-0.653643620864  math=-0.653643620864  err=1.019e-15
+  exponencial: mío=54.598150033144  math=54.598150033144  err=5.206e-16
+  ln:          mío=1.386294361120  math=1.386294361120  err=4.805e-16
+
+x = 5.0
+----------------------------------------
+  seno:        mío=-0.958924274663  math=-0.958924274663  err=2.894e-15
+  coseno:      mío=0.283662185463  math=0.283662185463  err=1.566e-15
+  exponencial: mío=148.413159102577  math=148.413159102577  err=1.915e-16
+  ln:          mío=1.609437912434  math=1.609437912434  err=0.000e+00
+
+x = 10.0
+----------------------------------------
+  seno:        mío=-0.544021110889  math=-0.544021110889  err=1.835e-13
+  coseno:      mío=-0.839071529077  math=-0.839071529076  err=1.751e-13
+  exponencial: mío=22026.465794806711  math=22026.465794806718  err=3.303e-16
+  ln:          mío=2.302585092994  math=2.302585092994  err=1.929e-16
+
+
+============================================================
+RESPUESTAS A LAS PREGUNTAS
+============================================================
+
+¿Hay algún valor de x donde el error sea sorprendentemente alto?
+
+Sí. El error relativo se dispara cuando el valor real está muy cerca
+de cero, porque la fórmula divide entre el valor exacto:
+
+    error_relativo = |aprox - exacto| / |exacto|
+
+Si 'exacto' es casi cero, el denominador se hace minúsculo y el
+cociente se infla aunque el error absoluto sea chiquito.
+
+Ejemplos típicos:
+  - coseno(x) cerca de x = pi/2 ≈ 1.5708, donde cos(x) ≈ 0.
+  - seno(x) cerca de x = pi ≈ 3.1416, donde sen(x) ≈ 0.
+  - ln(x) cerca de x = 1, donde ln(1) = 0 exactamente.
+
+En esos puntos el error relativo puede dar valores grandes o incluso
+divergir, aunque el error absoluto sea del orden de 1e-16.
+
+Por eso el profe evitó a propósito valores como pi/2 en las pruebas
+de coseno: no porque la función esté mal, sino porque el error
+relativo no es una buena métrica cerca de los ceros de la función.

@@ -1,0 +1,45 @@
+REPORTE DEL EXPERIMENTO DE MILLIKAN
+=======================================================
+
+RESUMEN
+-------------------------------------------------------
+Experimento: Millikan xd
+Responsable: Lavatti
+Voltaje (V): 500.0
+Distancia (m): 23.0
+Viscosidad (Pa·s): 1.602e-19
+Valores únicos: {2.445e-19, 2.564e-19, 1.109e-19, 6.767e-19}
+Carga estimada (C): 1.1853333333333334e-19
+Desviación estándar (C): 7.046068643813603e-21
+Error relativo: 0.26017312437391754
+Número de gotas válidas: 4
+
+
+DETALLE POR GOTA
+-------------------------------------------------------
+Gota 1:
+  Carga medida:          2.445000e-19 C
+  n (cargas elementales): 2
+  Estimación individual:  1.222500e-19 C
+
+Gota 2:
+  Carga medida:          2.564000e-19 C
+  n (cargas elementales): 2
+  Estimación individual:  1.282000e-19 C
+
+Gota 3:
+  Carga medida:          6.767000e-19 C
+  n (cargas elementales): 6
+  Estimación individual:  1.127833e-19 C
+
+Gota 4:
+  Carga medida:          1.109000e-19 C
+  n (cargas elementales): 1
+  Estimación individual:  1.109000e-19 C
+
+
+COMPARACIÓN CON EL VALOR ACEPTADO
+-------------------------------------------------------
+Valor aceptado:  1.602177e-19 C
+Nuestra estimación: 1.185333e-19 C
+Error relativo:  2.601731e-01
