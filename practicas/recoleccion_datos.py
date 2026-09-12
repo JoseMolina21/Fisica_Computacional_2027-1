@@ -28,7 +28,6 @@ resumen = {
 # Valor de la carga del electrón
 E_REAL = 1.602176634e-19
 
-# --- Condiciones fijas del experimento (tupla) ---
 print("\n--- Condiciones fijas del experimento ---")
 voltaje = float(input("Voltaje entre placas (V): "))
 distancia = float(input("Distancia entre placas (m): "))
@@ -39,7 +38,6 @@ resumen["Voltaje (V)"] = voltaje
 resumen["Distancia (m)"] = distancia
 resumen["Viscosidad (Pa·s)"] = viscosidad
 
-# --- Mediciones de carga (lista) ---
 print("\n--- Mediciones de carga de cada gota ---")
 cargas_medidas = []
 NUM_GOTAS = 4
@@ -111,11 +109,10 @@ def estimar_carga_electron(cargas_medidas):
     return e_final, desviacion, estimaciones, n_individuales
 
 
-# --- Ejecutar la estimación ---
+# --- estimación ---
 e_estimada, desviacion, e_individuales, n_individuales = estimar_carga_electron(cargas_medidas)
 error = error_relativo(e_estimada, E_REAL)
 
-# Agregar al resumen
 resumen["Carga estimada (C)"] = e_estimada
 resumen["Desviación estándar (C)"] = desviacion
 resumen["Error relativo"] = error

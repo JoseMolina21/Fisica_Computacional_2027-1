@@ -8,7 +8,7 @@ def pi_leibniz(n_terminos):
         signo *= -1
     return suma * 4
 
-N = 1_000_000  # 1 millón de términos
+N = 1_000_000  
 pi_aprox = pi_leibniz(N)
 error = abs(pi_aprox - math.pi)
 
