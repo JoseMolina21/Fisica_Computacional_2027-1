@@ -2,6 +2,8 @@
 """
 Práctica 1 — Ejercicio 1: Carga del electrón (experimento de Millikan)
 Recolección de datos y estimación de la carga del electrón.
+
+Como nota: desarrollé el código en colab puesto que se me dificultó aprender a usar VS Code, sin embargo, a la hora de hacer los ajustes para poder subirlo bien a Github creo que le agarré el truco para futuras prácticas.
 """
 
 import math
