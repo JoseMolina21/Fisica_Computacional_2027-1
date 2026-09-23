@@ -4,18 +4,30 @@
 La idea es construir, sin usar el módulo `math` de la librería
 estándar, aproximaciones numéricas de funciones como:
 
-- factorial(n)     -- ya implementada
-- seno(x)          -- ya implementada, con serie de Taylor
-- coseno(x)        -- pendiente (práctica 1)
-- exponencial(x)   -- pendiente (práctica 1)
-- ln(x)            -- pendiente (práctica 1)
-- raiz_cuadrada(x) -- pendiente (práctica 1)
+- factorial(n)     -- iterativa
+- seno(x)          -- serie de Taylor
+- coseno(x)        -- serie de Taylor
+- tangente(x)      -- seno(x) / coseno(x)
+- secante(x)       -- 1 / coseno(x)
+- cosecante(x)     -- 1 / seno(x)
+- cotangente(x)    -- coseno(x) / seno(x)
+- exponencial(x)   -- serie de Taylor
+- ln(x)            -- serie de ln((1+y)/(1-y)), y = (x-1)/(x+1)
+- raiz_cuadrada(x) -- método de Newton-Raphson
+- arcotangente(x)  -- serie de Taylor, para |x| <= 1
+- calcular_pi()    -- fórmula de Machin, a partir de arcotangente
 
-Las funciones basadas en series (seno, coseno, exponencial, ...) usan
+PI (mayúsculas, como constante que es) guarda calcular_pi() ya
+evaluada una sola vez al importar el módulo, igual que EPS guarda
+epsilon_maquina() en fiscomp.precision_numerica.
+
+Las funciones basadas en series (seno, coseno, exponencial, ln) usan
 EPS (fiscomp.precision_numerica) como criterio de convergencia: se
 suman términos mientras el siguiente término siga siendo mayor o
 igual que el épsilon de la máquina, y se corta la suma en cuanto deja
-de aportar precisión adicional.
+de aportar precisión adicional. raiz_cuadrada usa el mismo EPS, pero
+como criterio de paro de las iteraciones de Newton-Raphson (se detiene
+cuando dos aproximaciones sucesivas ya casi no cambian).
 """
 
 from fiscomp.precision_numerica import EPS
@@ -54,6 +66,162 @@ def seno(x, precision=EPS):
         suma += termino
         k += 1
     return suma
+
+
+def coseno(x, precision=EPS):
+    """Aproxima cos(x) con la serie de Taylor alrededor de 0:
+
+        cos(x) = suma_{k=0}^inf (-1)^k * x^(2k) / (2k)!
+
+    Mismo criterio de corte que `seno()`, y la misma nota sobre no
+    hacer reducción de rango.
+    """
+    suma = 0.0
+    k = 0
+    while True:
+        termino = (-1) ** k * x ** (2 * k) / factorial(2 * k)
+        if abs(termino) < precision:
+            break
+        suma += termino
+        k += 1
+    return suma
+
+
+def tangente(x, precision=EPS):
+    """Aproxima tan(x) = sin(x) / cos(x), reutilizando seno() y coseno().
+
+    Nota: no hay protección especial cerca de x = pi/2 + n*pi (donde
+    cos(x) = 0 y tan(x) diverge); ahí `coseno(x)` da un valor cercano
+    a 0 pero no exactamente 0, así que el resultado es un número muy
+    grande en vez de un error.
+    """
+    return seno(x, precision) / coseno(x, precision)
+
+
+def secante(x, precision=EPS):
+    """Aproxima sec(x) = 1 / cos(x), reutilizando coseno()."""
+    return 1.0 / coseno(x, precision)
+
+
+def cosecante(x, precision=EPS):
+    """Aproxima csc(x) = 1 / sin(x), reutilizando seno()."""
+    return 1.0 / seno(x, precision)
+
+
+def cotangente(x, precision=EPS):
+    """Aproxima cot(x) = cos(x) / sin(x), reutilizando seno() y coseno()."""
+    return coseno(x, precision) / seno(x, precision)
+
+
+def exponencial(x, precision=EPS):
+    """Aproxima e^x con la serie de Taylor alrededor de 0:
+
+        e^x = suma_{k=0}^inf x^k / k!
+
+    A diferencia de seno/coseno, todos los términos suman en la misma
+    dirección cuando x > 0 (no hay cancelación); para x < 0 sí hay
+    signos alternados, con el mismo problema de precisión que en
+    seno/coseno para |x| grande.
+    """
+    suma = 0.0
+    k = 0
+    while True:
+        termino = x**k / factorial(k)
+        if abs(termino) < precision:
+            break
+        suma += termino
+        k += 1
+    return suma
+
+
+def ln(x, precision=EPS):
+    """Aproxima ln(x), para x > 0, con la serie:
+
+        ln(x) = 2 * suma_{k=0}^inf y^(2k+1) / (2k+1),   y = (x-1)/(x+1)
+
+    A diferencia de la serie de Taylor de ln(x) alrededor de x = 1
+    (que solo converge para 0 < x <= 2), esta serie converge para
+    cualquier x > 0: entre más lejos esté x de 1, más cerca de 1 (o
+    de -1) está y, y más términos hacen falta para que el término
+    caiga por debajo de `precision`.
+    """
+    if x <= 0:
+        raise ValueError("ln(x) solo está definido para x > 0")
+
+    y = (x - 1) / (x + 1)
+    suma = 0.0
+    k = 0
+    while True:
+        termino = y ** (2 * k + 1) / (2 * k + 1)
+        if abs(termino) < precision:
+            break
+        suma += termino
+        k += 1
+    return 2 * suma
+
+
+def raiz_cuadrada(x, precision=EPS):
+    """Aproxima sqrt(x), para x >= 0, con el método de Newton-Raphson:
+
+        y_(n+1) = (y_n + x / y_n) / 2
+
+    Partiendo de y_0 = x, cada iteración aproximadamente duplica el
+    número de dígitos correctos; se detiene en cuanto dos
+    aproximaciones sucesivas difieren en menos que `precision`.
+    """
+    if x < 0:
+        raise ValueError("raiz_cuadrada(x) solo está definida para x >= 0")
+    if x == 0:
+        return 0.0
+
+    aproximacion = x
+    while True:
+        siguiente = (aproximacion + x / aproximacion) / 2
+        if abs(siguiente - aproximacion) < precision:
+            return siguiente
+        aproximacion = siguiente
+
+
+def arcotangente(x, precision=EPS):
+    """Aproxima arctan(x), para |x| <= 1, con la serie de Taylor:
+
+        arctan(x) = suma_{k=0}^inf (-1)^k * x^(2k+1) / (2k+1)
+
+    Mismo criterio de corte que seno()/coseno(). Solo se usa aquí con
+    argumentos pequeños (1/5, 1/239 en calcular_pi()), donde converge
+    rápido; para x cercano a 1 haría falta cada vez más términos.
+    """
+    if abs(x) > 1:
+        raise ValueError("arcotangente(x) solo converge para |x| <= 1")
+
+    suma = 0.0
+    k = 0
+    while True:
+        termino = (-1) ** k * x ** (2 * k + 1) / (2 * k + 1)
+        if abs(termino) < precision:
+            break
+        suma += termino
+        k += 1
+    return suma
+
+
+def calcular_pi(precision=EPS):
+    """Aproxima pi con la fórmula de Machin:
+
+        pi/4 = 4*arctan(1/5) - arctan(1/239)
+
+    Machin evalúa arcotangente() en argumentos pequeños (1/5, 1/239),
+    donde la serie de Taylor converge en pocas decenas de términos. En
+    contraste, la serie de Leibniz pi/4 = arctan(1) = 1 - 1/3 + 1/5 -
+    ... converge tan lento (el término k-ésimo es ~1/k) que llegar al
+    épsilon de la máquina tomaría miles de millones de términos.
+    """
+    return 16 * arcotangente(1.0 / 5.0, precision) - 4 * arcotangente(
+        1.0 / 239.0, precision
+    )
+
+
+PI = calcular_pi()
 
 
 if __name__ == "__main__":
@@ -114,3 +282,68 @@ def ln(x):
         n += 1
         termino = y ** (2 * n + 1)
     return 2 * suma
+
+    print()
+    for x in (0.0, 0.5, 1.0, -1.0, 2.0, math.pi):
+        aproximado = coseno(x)
+        exacto = math.cos(x)
+        print(
+            f"coseno({x:.4f}) = {aproximado:.12f}  "
+            f"math.cos = {exacto:.12f}  "
+            f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
+        )
+
+    print()
+    for x in (0.0, 0.5, 1.0, -1.0, math.pi / 4):
+        aproximado = tangente(x)
+        exacto = math.tan(x)
+        print(
+            f"tangente({x:.4f}) = {aproximado:.12f}  "
+            f"math.tan = {exacto:.12f}  "
+            f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
+        )
+
+    print()
+    for x in (1.0, -1.0, 5.0, -10.0, 2.5):
+        aproximado = exponencial(x)
+        exacto = math.exp(x)
+        print(
+            f"exponencial({x:.4f}) = {aproximado:.12f}  "
+            f"math.exp = {exacto:.12f}  "
+            f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
+        )
+
+    print()
+    for x in (1.0, 0.1, 0.5, 2.0, 5.0, 100.0):
+        aproximado = ln(x)
+        exacto = math.log(x)
+        print(
+            f"ln({x:.4f}) = {aproximado:.12f}  "
+            f"math.log = {exacto:.12f}  "
+            f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
+        )
+
+    print()
+    for x in (0.0, 1.0, 2.0, 10.0, 0.5, 1e10):
+        aproximado = raiz_cuadrada(x)
+        exacto = math.sqrt(x)
+        print(
+            f"raiz_cuadrada({x:.4f}) = {aproximado:.12f}  "
+            f"math.sqrt = {exacto:.12f}  "
+            f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
+        )
+
+    print()
+    for x in (0.0, 1.0 / 5.0, 1.0 / 239.0, -0.5):
+        aproximado = arcotangente(x)
+        exacto = math.atan(x)
+        print(
+            f"arcotangente({x:.4f}) = {aproximado:.12f}  "
+            f"math.atan = {exacto:.12f}  "
+            f"error_relativo = {error_relativo(aproximado, exacto):.2e}"
+        )
+
+    print()
+    print(f"PI = {PI:.15f}")
+    print(f"math.pi = {math.pi:.15f}")
+    print(f"error_relativo = {error_relativo(PI, math.pi):.2e}")
