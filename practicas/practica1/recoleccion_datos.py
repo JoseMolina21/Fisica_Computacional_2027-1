@@ -10,7 +10,7 @@ import math
 from pathlib import Path
 import sys
 
-raiz = Path(__file__).resolve().parent.parent
+raiz = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(raiz))
 
 from fiscomp.precision_numerica import error_relativo
