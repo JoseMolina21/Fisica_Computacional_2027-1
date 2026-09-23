@@ -129,9 +129,18 @@ class Matrix:
         ValueError
             Si `self` y `other` no tienen las mismas dimensiones.
         """
-        # TODO: sumar elemento a elemento, checando antes que las
-        # dimensiones coincidan.
-        raise NotImplementedError("TODO: completar __add__")
+        if not isinstance(other, Matrix):
+            raise TypeError("Solo se puede sumar otra Matrix")
+        if self.shape() != other.shape():
+            raise ValueError("Las matrices deben tener la misma forma")
+
+        resultado = []
+        for i in range(self.rows):
+            fila = []
+            for j in range(self.cols):
+                fila.append(self.data[i][j] + other.data[i][j])
+            resultado.append(fila)
+        return Matrix(resultado)
 
     def __sub__(self, other):
         """
@@ -150,9 +159,11 @@ class Matrix:
         ValueError
             Si `self` y `other` no tienen las mismas dimensiones.
         """
-        # TODO: réstenlas.
-        raise NotImplementedError("TODO: completar __sub__")
-
+        if not isinstance(other, Matrix):
+            raise TypeError("Solo se puede restar otra Matrix")
+        if self.shape() != other.shape():
+            raise ValueError("Las matrices deben tener la misma forma")
+        return self + (other * -1)
     def __mul__(self, other):
         """
         Multiplicación por escalar o por otra matriz.
@@ -175,10 +186,35 @@ class Matrix:
         TypeError
             Si el tipo de `other` no es soportado.
         """
-        # TODO: distingan (con isinstance) si `other` es un número o
-        # una Matrix, y actúen en consecuencia; para cualquier otro
-        # tipo, levanten TypeError.
-        raise NotImplementedError("TODO: completar __mul__")
+        # Caso 1: escalar
+        if isinstance(other, (int, float)):
+            resultado = []
+            for i in range(self.rows):
+                fila = []
+                for j in range(self.cols):
+                    fila.append(self.data[i][j] * other)
+                resultado.append(fila)
+            return Matrix(resultado)
+
+        # Caso 2: otra Matrix
+        if isinstance(other, Matrix):
+            if self.cols != other.rows:
+                raise ValueError(
+                    "Las columnas de self deben coincidir con los renglones de other"
+                )
+            resultado = []
+            for i in range(self.rows):
+                fila = []
+                for j in range(other.cols):
+                    suma = 0
+                    for k in range(self.cols):
+                        suma += self.data[i][k] * other.data[k][j]
+                    fila.append(suma)
+                resultado.append(fila)
+            return Matrix(resultado)
+
+        # Caso 3: tipo no soportado
+        raise TypeError("Solo se puede multiplicar por un número o por otra Matrix")
 
     # Una vez completado __mul__, esta línea hace que `escalar * matriz`
     # funcione igual que `matriz * escalar` (mismo truco que en VectorND).
