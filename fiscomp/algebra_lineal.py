@@ -14,7 +14,8 @@ Convenciones:
 Aquí vive lo que se reutiliza en el resto del tema: las sustituciones
 para matrices triangulares, la eliminación gaussiana (con y sin
 pivoteo), la descomposición LU con la inversa y el determinante, el
-método de Jacobi, y la matriz de prueba del libro.
+método de Jacobi, los métodos de la potencia (directo e inverso con
+desplazamiento) para eigenvalores, y la matriz de prueba del libro.
 """
 
 from fiscomp.funciones_especiales import raiz_cuadrada
@@ -351,6 +352,97 @@ def jacobi(A, b, kmax=50, tol=1e-6):
         # Solo llega aquí si el for terminó sin break: no convergió.
         return None, kmax
     return x, k
+
+
+###############################################
+# Eigenvalores: método de la potencia
+###############################################
+
+
+def producto_punto(x, y):
+    """Producto punto de dos vectores: sum_i x_i y_i."""
+    suma = 0.0
+    for x_i, y_i in zip(x, y):
+        suma += x_i * y_i
+    return suma
+
+
+def normalizar(x):
+    """Copia de x dividida entre su norma euclídea (norma 1)."""
+    norma = norma_euclidea(x)
+    return [x_i / norma for x_i in x]
+
+
+def cociente_rayleigh(A, x):
+    """Cociente de Rayleigh (ec. 4.133 del libro):
+
+        mu(x) = x.(A x) / x.x
+
+    Si x es un eigenvector de A, da exactamente su eigenvalor; si x
+    está cerca de un eigenvector, da una buena aproximación.
+    """
+    return producto_punto(x, mat_vec(A, x)) / producto_punto(x, x)
+
+
+def potencia(A, kmax=6):
+    """Método de la potencia (power en el libro): el eigenvalor de mayor
+    valor absoluto de A (el dominante) y su eigenvector. Para k = 1, 2, ...
+
+        z = A q
+        q = z / ||z||
+
+    empezando con q = (1, 1, ..., 1) normalizado. Al final, el
+    eigenvalor es el cociente de Rayleigh de q.
+
+    A: matriz n x n (lista de listas). kmax: se hacen kmax - 1
+    iteraciones, sin criterio de paro (como en el libro).
+    Regresa (eigenvalor, eigenvector), con el eigenvector de norma 1.
+    """
+    q = normalizar([1.0] * len(A))
+    for k in range(1, kmax):
+        z = mat_vec(A, q)
+        q = normalizar(z)
+    return cociente_rayleigh(A, q), q
+
+
+def potencia_inversa(A, desplazamiento=20.0, kmax=200, tol=1e-8):
+    """Método de la potencia inversa con desplazamiento (invpowershift en
+    el libro): el eigenvalor de A más cercano a `desplazamiento` (s) y su
+    eigenvector. Se factoriza A - s I = L U una sola vez, y para
+    k = 1, 2, ...
+
+        (A - s I) z = q     (con resolver_lu: sustitución adelante y atrás)
+        q = z / ||z||
+
+    hasta que cambio_relativo entre dos q seguidos sea menor que tol.
+    Si q cambió de signo respecto al anterior se le vuelve a cambiar,
+    porque con un eigenvalor de A - s I negativo el signo de q alterna
+    en cada iteración y el criterio de paro nunca se cumpliría.
+
+    A: matriz n x n (lista de listas). desplazamiento: número real s;
+    no debe ser exactamente un eigenvalor (A - s I sería singular).
+    kmax: número máximo de iteraciones (entero); tol: tolerancia.
+    Regresa (eigenvalor, eigenvector, k): el eigenvalor (cociente de
+    Rayleigh con la A original), el eigenvector de norma 1 y el número
+    de iteraciones, o (None, None, kmax) si no convergió.
+    """
+    n = len(A)
+    A_desplazada = [[A[i][j] - (desplazamiento if i == j else 0.0) for j in range(n)] for i in range(n)]
+    L, U = descomposicion_lu(A_desplazada)
+    q = normalizar([1.0] * n)
+    for k in range(1, kmax):
+        z = resolver_lu(L, U, q)
+        q_nuevo = normalizar(z)
+        if producto_punto(q, q_nuevo) < 0:
+            q_nuevo = [-q_i for q_i in q_nuevo]
+        error = cambio_relativo(q, q_nuevo)
+        q = q_nuevo
+        if error < tol:
+            break
+    else:
+        # Solo llega aquí si el for terminó sin break: no convergió.
+        return None, None, kmax
+    return cociente_rayleigh(A, q), q, k
 
 
 ###############################################

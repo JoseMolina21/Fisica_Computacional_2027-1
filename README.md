@@ -90,7 +90,9 @@ Los temas marcados como *(pendiente)* aún no se han visto en clase.
 - Práctica: [práctica 4](practicas/practica4/practica_04.md) (matrices
   triangulares como clases hijas de `Matrix`, `SistemaTriangular`,
   conteo de operaciones y complejidad)
-- Problemas de eigenvalores *(pendiente)*
+- Problemas de eigenvalores: método de la potencia y de la potencia
+  inversa con desplazamiento — [unidad 09](unidades/09_algebra_lineal/);
+  el método QR *(pendiente)*
 - Descomposición en valores singulares (SVD) *(pendiente)*
 - **Proyecto:** la ecuación de Schrödinger como problema de
   eigenvalores (espines 1/2) —

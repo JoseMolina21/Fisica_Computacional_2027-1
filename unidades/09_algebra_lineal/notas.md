@@ -13,8 +13,11 @@
   su costo, y cómo reutilizar LU para muchos lados derechos (la
   inversa, el número de condición y el determinante); inestabilidad
   sin mal condicionamiento y pivoteo parcial; el método iterativo de
-  Jacobi.
-- Corresponde a las secciones 4.1 a 4.3.5 del libro de Gezerlis.
+  Jacobi; el problema de eigenvalores numéricamente (diagonalización,
+  por qué no usar el polinomio característico), el método de la
+  potencia, el cociente de Rayleigh y el método de la potencia
+  inversa con desplazamiento.
+- Corresponde a las secciones 4.1 a 4.4.2 del libro de Gezerlis.
 
 ## Notación
 
@@ -1780,6 +1783,410 @@ iteración, en vez de los viejos. Impleméntenlo (problema 4.19 del
 libro) y comparen cuántas iteraciones necesita con la matriz de prueba
 más $21I$.
 
+## El problema de eigenvalores, numéricamente
+
+Pasamos a la "segunda mitad" del álgebra lineal:
+
+```math
+A\mathbf{v}_i = \lambda_i\mathbf{v}_i .
+```
+
+El truco principal de las secciones anteriores ya no sirve: restarle
+a un renglón un múltiplo de otro (la eliminación gaussiana) **cambia
+los eigenvalores** de la matriz. Así que aquí no vamos a eliminar.
+
+Nos restringimos al caso en el que la matriz $A$ de $n\times n$ tiene
+$n$ eigenvalores **distintos**. Entonces sus $n$ eigenvectores son
+linealmente independientes, y si los ponemos como columnas de una
+matriz $V$ (la *matriz de eigenvectores*) se cumple
+
+```math
+V^{-1} A V = \Lambda,
+\qquad
+\Lambda = \begin{pmatrix}
+\lambda_0 & 0 & \cdots & 0\\
+0 & \lambda_1 & \cdots & 0\\
+\vdots & \vdots & \ddots & \vdots\\
+0 & 0 & \cdots & \lambda_{n-1}
+\end{pmatrix},
+\qquad
+V = \begin{pmatrix} \mathbf{v}_0 & \mathbf{v}_1 & \cdots & \mathbf{v}_{n-1}\end{pmatrix}.
+```
+
+(La prueba es el problema 4.21 del libro: escriban $AV$ columna por
+columna.) Por eso a resolver el problema de eigenvalores también se le
+llama **diagonalizar** la matriz, y a $A = V\Lambda V^{-1}$ se le
+llama la **eigendescomposición**.
+
+No vamos a suponer que $A$ es simétrica: muchos problemas de física
+dan matrices simétricas, pero no todos. Eso sí, una matriz no
+simétrica puede tener eigenvalores complejos; aquí solo veremos
+matrices no simétricas con eigenvalores reales (y distintos). La
+matriz de prueba del libro, `crear_prueba(4, 21)`, es de ese tipo.
+
+**¿Por qué no usar el polinomio característico?** En la sección "El
+problema de eigenvalores" vimos que los eigenvalores son las raíces de
+$|A - \lambda I| = 0$. Pero encontrar las raíces de un polinomio suele
+ser un problema **mal condicionado** (lo veremos en el capítulo 5),
+aunque el problema de eigenvalores original esté bien condicionado. El
+proyecto de espines ya se topó con otra limitación: barriendo
+$\lambda$ y buscando cambios de signo del determinante, un eigenvalor
+repetido no cambia el signo y se pierde. Es más sensato transformar la
+matriz en otra de la que se puedan leer los eigenvalores, cuidando que
+sean los mismos.
+
+Todos los métodos para eigenvalores son **iterativos**. El que se usa
+en la práctica cuando se quieren *todos* los eigenvalores es el
+**método QR**. Antes de llegar a él veremos dos métodos más sencillos,
+el de la **potencia** y el de la **potencia inversa**, que dan un solo
+eigenpar (un eigenvalor y su eigenvector) cada uno. Sirven
+pedagógicamente, se parecen conceptualmente a QR, y la potencia
+inversa será una pieza del programa final.
+
+## Método de la potencia
+
+Como los $n$ eigenvalores son distintos, los podemos ordenar por
+magnitud:
+
+```math
+|\lambda_0| > |\lambda_1| > |\lambda_2| > \cdots > |\lambda_{n-1}|.
+```
+
+El método de la potencia encuentra $\lambda_0$, el eigenvalor
+**dominante**, y su eigenvector $\mathbf{v}_0$.
+
+### Primera versión
+
+La receta es muy simple: se escoge un vector inicial
+$`\mathbf{z}^{(0)}`$ y se multiplica por $A$ una y otra vez (el
+superíndice entre paréntesis es el número de iteración, como en
+Jacobi):
+
+```math
+\mathbf{z}^{(k)} = A\mathbf{z}^{(k-1)}, \qquad k = 1, 2, \ldots
+```
+
+Entonces $`\mathbf{z}^{(1)} = A\mathbf{z}^{(0)}`$,
+$`\mathbf{z}^{(2)} = A^2\mathbf{z}^{(0)}`$, y en general
+$`\mathbf{z}^{(k)} = A^k\mathbf{z}^{(0)}`$: aparecen las *potencias*
+de $A$, de ahí el nombre.
+
+¿Qué tiene que ver esto con los eigenvalores? Escribamos el vector
+inicial como combinación lineal de los eigenvectores (que no
+conocemos; los coeficientes $c_i$ tampoco):
+
+```math
+\mathbf{z}^{(0)} = \sum_{i=0}^{n-1} c_i\mathbf{v}_i .
+```
+
+Multiplicando por $A^k$ y usando $k$ veces que
+$A\mathbf{v}_i = \lambda_i\mathbf{v}_i$:
+
+```math
+\mathbf{z}^{(k)} = A^k\mathbf{z}^{(0)}
+= \sum_{i=0}^{n-1} c_i\lambda_i^k\mathbf{v}_i
+= \lambda_0^k\left[c_0\mathbf{v}_0 + \sum_{i=1}^{n-1} c_i\left(\frac{\lambda_i}{\lambda_0}\right)^k\mathbf{v}_i\right].
+```
+
+En el último paso sacamos el término $i = 0$ de la suma y factorizamos
+$\lambda_0^k$. Como $\lambda_0$ es el más grande en magnitud, cada
+$`(\lambda_i/\lambda_0)^k \to 0`$ cuando $k \to \infty$. Así que, si
+$c_0 \neq 0$ (es decir, si el vector inicial tiene alguna componente
+en la dirección de $\mathbf{v}_0$), $`\mathbf{z}^{(k)}`$ apunta cada vez
+más en la dirección de $\mathbf{v}_0$.
+
+¿Qué tan rápido? El término que tarda más en desaparecer es el de
+$\lambda_1$, el segundo más grande. El error se reduce en cada
+iteración más o menos por un factor
+
+```math
+\left|\frac{\lambda_1}{\lambda_0}\right| .
+```
+
+Si $\lambda_1$ y $\lambda_0$ son parecidos, la convergencia es lenta.
+
+**El eigenvalor.** Sabemos que $`\mathbf{z}^{(k)}`$ tiende a
+$c_0\lambda_0^k\mathbf{v}_0$, pero no conocemos ni $c_0$, ni
+$\lambda_0$, ni $\mathbf{v}_0$. Aun así basta para sacar el eigenvalor
+con el **cociente de Rayleigh** de un vector $\mathbf{x}$:
+
+```math
+\mu(\mathbf{x}) = \frac{\mathbf{x}^T A\mathbf{x}}{\mathbf{x}^T\mathbf{x}} .
+```
+
+Si $\mathbf{x}$ es un eigenvector, $`A\mathbf{x} = \lambda\mathbf{x}`$
+y $`\mu(\mathbf{x}) = \lambda`$ exactamente (cualquier factor que
+multiplique a $\mathbf{x}$ se cancela arriba y abajo). Si
+$\mathbf{x}$ no es un eigenvector, $`\mu(\mathbf{x})`$ es lo más
+parecido a un eigenvalor que se le puede asociar (en el sentido de
+mínimos cuadrados, capítulo 6). Así que $`\mu(\mathbf{z}^{(k)})`$ es
+nuestra mejor estimación de $\lambda_0$ en la iteración $k$.
+
+### Normalizando
+
+Hay un problema que ignoramos: el factor $\lambda_0^k$. Si
+$|\lambda_0| > 1$ crece sin límite (desbordamiento), y si
+$|\lambda_0| < 1$ se va a cero (subdesbordamiento). La solución es
+reescalar el vector en cada paso para que tenga norma 1 (norma
+euclídea):
+
+```math
+\mathbf{z}^{(k)} = A\mathbf{q}^{(k-1)},
+\qquad
+\mathbf{q}^{(k)} = \frac{\mathbf{z}^{(k)}}{\|\mathbf{z}^{(k)}\|},
+\qquad
+\mu(\mathbf{q}^{(k)}) = [\mathbf{q}^{(k)}]^T A\mathbf{q}^{(k)},
+\qquad k = 1, 2, \ldots
+```
+
+empezando con un $`\mathbf{q}^{(0)}`$ de norma 1. Como
+$`\|\mathbf{q}^{(k)}\| = 1`$, el denominador del cociente de Rayleigh
+vale 1. Ahora $`\mathbf{q}^{(k)}`$ ya no es *igual* a
+$`A^k\mathbf{q}^{(0)}`$ sino *proporcional*: seguimos multiplicando por
+$A$ en cada paso, pero quitamos el factor que sobra. De paso, el
+eigenvector ya sale normalizado: es el propio $`\mathbf{q}^{(k)}`$.
+(Los nombres $\mathbf{q}$ y $\mathbf{z}$ no son casualidad: los
+volveremos a usar en el método QR.)
+
+### Implementación
+
+En [`fiscomp/algebra_lineal.py`](../../fiscomp/algebra_lineal.py)
+agregamos tres funciones auxiliares, `producto_punto`, `normalizar`
+(divide entre `norma_euclidea`) y `cociente_rayleigh`, y el método:
+
+```python
+def potencia(A, kmax=6):
+    q = normalizar([1.0] * len(A))
+    for k in range(1, kmax):
+        z = mat_vec(A, q)
+        q = normalizar(z)
+    return cociente_rayleigh(A, q), q
+```
+
+Igual que en el libro, el vector inicial es $`(1, 1, \ldots, 1)`$
+normalizado, se hace un número fijo de iteraciones, y el cociente de
+Rayleigh se calcula **una sola vez**, al final: calcularlo en cada
+iteración sería desperdiciar un producto matriz-vector por vuelta.
+
+La primera parte de [`potencia.py`](potencia.py) lo prueba con la
+matriz de prueba del libro y reproduce su resultado,
+$\lambda_0 = 21.3166626635$ y
+$`\mathbf{v}_0 = (0.44439562, 0.48218122, 0.51720906, 0.55000781)`$.
+El libro compara contra `numpy.linalg.eig`; como aquí no usamos NumPy,
+comprobamos con el residuo
+$`\|A\mathbf{v} - \lambda\mathbf{v}\|/\|\mathbf{v}\|`$, que sale
+$\sim 5\times 10^{-13}$. El script también imprime el error relativo
+de $`\mu(\mathbf{q}^{(k)})`$ en cada iteración: el cociente entre dos
+errores seguidos es $\approx 3.15\times 10^{-3}$, que es exactamente
+$|\lambda_1/\lambda_0| = 0.0672/21.3$. Por eso converge tan rápido:
+cada iteración gana unos dos dígitos y medio, y en 5 iteraciones ya
+estamos en el épsilon de la máquina.
+
+En vez de escoger el número de iteraciones a ojo, sería mejor un
+criterio de paro como el de Jacobi, con `cambio_relativo` entre dos
+$\mathbf{q}$ seguidos (eso lo hace la potencia inversa, abajo).
+
+### Conteo de operaciones
+
+El número total de operaciones de un método iterativo depende de
+cuántas iteraciones $m$ hagan falta, que no se sabe de antemano
+(depende del vector inicial, de la tolerancia, del criterio de paro y,
+sobre todo, de $|\lambda_1/\lambda_0|$). Por iteración, el producto
+$A\mathbf{q}$ cuesta $\sim 2n^2$ y la norma $\sim 2n$; al final, el
+cociente de Rayleigh cuesta otro $\sim 2n^2$. En total, el método de
+la potencia cuesta $`\sim 2(m+1)n^2`$ operaciones.
+
+## Método de la potencia inversa con desplazamiento
+
+Ahora queremos el eigenvalor de **menor** magnitud, $`\lambda_{n-1}`$.
+
+### La potencia inversa
+
+Multiplicando $A\mathbf{v}_i = \lambda_i\mathbf{v}_i$ por $A^{-1}$ por
+la izquierda y dividiendo entre $\lambda_i$:
+
+```math
+A^{-1}\mathbf{v}_i = \frac{1}{\lambda_i}\mathbf{v}_i .
+```
+
+Es decir, $A^{-1}$ tiene **los mismos eigenvectores** que $A$, y sus
+eigenvalores son los **recíprocos**. (Si algún $\lambda_i = 0$, $A$ es
+singular y no hay $A^{-1}$; recuerden que el determinante es el
+producto de los eigenvalores.) El eigenvalor más grande de $A^{-1}$ es
+$`1/\lambda_{n-1}`$, así que aplicar el método de la potencia a
+$A^{-1}$,
+
+```math
+\mathbf{z}^{(k)} = A^{-1}\mathbf{q}^{(k-1)},
+```
+
+hace que $`\mathbf{q}^{(k)}`$ tienda a $`\mathbf{v}_{n-1}`$. Y como los
+eigenvectores son los mismos, al final podemos usar el cociente de
+Rayleigh con la $A$ original, $`[\mathbf{q}^{(k)}]^T A\mathbf{q}^{(k)}`$,
+que da directamente $`\lambda_{n-1}`$ (con $A^{-1}$ daría
+$`1/\lambda_{n-1}`$).
+
+Pero calcular $A^{-1}$ es caro, y no hace falta. Multiplicando por
+$A$ por la izquierda, cada paso es un **sistema lineal**:
+
+```math
+A\mathbf{z}^{(k)} = \mathbf{q}^{(k-1)} .
+```
+
+Es siempre la misma matriz $A$ con distintos lados derechos: el caso
+ideal para LU (sección "Resolver un sistema con LU"). Se factoriza
+$A = LU$ **una vez**, fuera del ciclo, y en cada iteración solo se
+hacen las dos sustituciones con `resolver_lu`. El método queda casi
+idéntico al de la potencia; la única diferencia (crucial) es que donde
+había un producto matriz-vector ahora hay un sistema que resolver:
+
+```math
+A\mathbf{z}^{(k)} = \mathbf{q}^{(k-1)},
+\qquad
+\mathbf{q}^{(k)} = \frac{\mathbf{z}^{(k)}}{\|\mathbf{z}^{(k)}\|},
+\qquad
+\mu(\mathbf{q}^{(k)}) = [\mathbf{q}^{(k)}]^T A\mathbf{q}^{(k)} .
+```
+
+### Desplazamiento de eigenvalores
+
+Un refinamiento más. Restemos $s\mathbf{v}_i$ de los dos lados de
+$A\mathbf{v}_i = \lambda_i\mathbf{v}_i$, con $s$ un número cualquiera
+(el **desplazamiento**, *shift*):
+
+```math
+(A - sI)\mathbf{v}_i = (\lambda_i - s)\mathbf{v}_i .
+```
+
+La matriz $`A^* = A - sI`$ tiene los mismos eigenvectores que $A$, y sus
+eigenvalores son los de $A$ recorridos: $`\lambda^*_i = \lambda_i - s`$.
+
+Si aplicamos la potencia inversa a $`A^*`$, encontramos su eigenvalor
+de menor magnitud, el $`\lambda^*_i = \lambda_i - s`$ más cercano a
+cero. Eso es lo mismo que encontrar el eigenvalor $\lambda_i$ de $A$
+**más cercano a** $s$. Esa es la gracia de combinar las dos ideas: la
+parte "inversa" encuentra el más chico, y el desplazamiento decide qué
+quiere decir "más chico". Con $s = 0$ recuperamos la potencia inversa
+simple.
+
+Cambiando $s$ podemos ir encontrando distintos eigenpares, aunque sin
+información previa no es una manera eficiente de encontrarlos todos
+(¿qué valores de $s$ probamos? ¿una malla?). El uso más importante es
+otro: si ya tenemos una **estimación** de un eigenvalor, la potencia
+inversa con ese desplazamiento la refina. Y si ya conocemos un
+eigenvalor con mucha precisión pero no su eigenvector, unas cuantas
+iteraciones con $s \approx \lambda_i$ dan $\mathbf{v}_i$. Así lo
+usaremos después de QR, que da los eigenvalores pero no los
+eigenvectores. (El proyecto de espines ya lo hacía, en
+`iteracion_inversa`.)
+
+**Rapidez.** Por el mismo argumento que en la potencia directa, la
+potencia inversa converge según el cociente entre el eigenvalor de
+$`A^*`$ que buscamos y el siguiente más chico. Para $s = 0$ es
+$`|\lambda_{n-1}/\lambda_{n-2}|`$. Con un desplazamiento $s$ muy cerca
+del eigenvalor buscado, $`\lambda^*_i = \lambda_i - s`$ es diminuto y el
+cociente también: el desplazamiento **acelera** la convergencia. (No
+hay problema en que $A - sI$ sea casi singular: el error de redondeo
+al resolver el sistema cae, justamente, en la dirección del
+eigenvector que buscamos.)
+
+### Implementación
+
+```python
+def potencia_inversa(A, desplazamiento=20.0, kmax=200, tol=1e-8):
+    n = len(A)
+    A_desplazada = [[A[i][j] - (desplazamiento if i == j else 0.0) for j in range(n)] for i in range(n)]
+    L, U = descomposicion_lu(A_desplazada)
+    q = normalizar([1.0] * n)
+    for k in range(1, kmax):
+        z = resolver_lu(L, U, q)
+        q_nuevo = normalizar(z)
+        if producto_punto(q, q_nuevo) < 0:
+            q_nuevo = [-q_i for q_i in q_nuevo]
+        error = cambio_relativo(q, q_nuevo)
+        q = q_nuevo
+        if error < tol:
+            break
+    else:
+        return None, None, kmax
+    return cociente_rayleigh(A, q), q, k
+```
+
+Comparada con `potencia`:
+
+- Al principio se construye $A - sI$ y se factoriza con
+  `descomposicion_lu`, **una sola vez**. Dentro del ciclo solo se usa
+  `resolver_lu` (las dos sustituciones), que es mucho más barato.
+- Tiene criterio de paro: el mismo `cambio_relativo` y el mismo
+  `for`-`else` de `jacobi`. Si converge regresa
+  `(eigenvalor, eigenvector, iteraciones)`; si no,
+  `(None, None, kmax)`. Igual que en Jacobi, `q` y `q_nuevo` son
+  listas distintas (`normalizar` crea una lista nueva); el libro tiene
+  que usar `np.copy` para lograrlo.
+- **El signo.** Si el eigenvalor de $A - sI$ que domina es negativo,
+  cada iteración multiplica por un número negativo y $\mathbf{q}$
+  cambia de signo en cada vuelta. Un vector y su opuesto son el mismo
+  eigenvector, pero para `cambio_relativo` son completamente
+  distintos (cada componente cambia en $2$, la suma da $2n$) y el
+  criterio de paro nunca se cumpliría. Por eso, si
+  $`\mathbf{q}^{(k-1)}\cdot\mathbf{q}^{(k)} < 0`$ (apuntan en
+  sentidos opuestos), se le cambia el signo a $`\mathbf{q}^{(k)}`$.
+  `potencia` no lo necesita porque no tiene criterio de paro.
+- El eigenvalor se calcula con el cociente de Rayleigh de la $A$
+  **original**, así que sale directamente $\lambda_i$ (con $`A^*`$
+  saldría $\lambda_i - s$ y habría que sumarle $s$).
+- Un detalle de `cambio_relativo`: divide entre cada componente, y
+  algunas componentes de un eigenvector pueden ser cero. Para los
+  ejemplos de aquí no pasa, pero es un criterio frágil.
+
+[`potencia.py`](potencia.py) lo prueba con la matriz de prueba:
+
+- Con $s = 20$ encuentra el mismo eigenpar que `potencia`, en 8
+  iteraciones (no las 200 de `kmax`).
+- Probando desplazamientos encuentra los **cuatro** eigenvalores:
+  $21.3$, $-0.0672$, $`-6.93\times 10^{-5}`$ y $`-7.50\times 10^{-8}`$.
+  Se comprueban sin NumPy con dos datos de la sección "El problema de
+  eigenvalores": su suma coincide con la traza de $A$ y su producto
+  con el determinante (calculado con LU), $`-7.45\times 10^{-12}`$.
+  (Tres eigenvalores diminutos: la matriz está muy cerca de ser
+  singular, como ya nos decía $`\kappa \approx 4\times 10^{8}`$.)
+- Con $s = 1$ **no converge** en 200 iteraciones: los dos eigenvalores
+  más cercanos a 1 están casi a la misma distancia de él, y el
+  cociente que controla la rapidez es $0.99993$.
+- Buscando $\lambda = -0.0672$ con desplazamientos cada vez más
+  cercanos, las iteraciones bajan de 104 ($s = -0.5$) a 4
+  ($s = -0.0672$).
+- Con $-A$ (eigenvalor dominante negativo) muestra el cambio de signo
+  de $\mathbf{q}$ en cada iteración.
+
+### Conteo de operaciones
+
+La descomposición LU de $`A^*`$ cuesta $\sim 2n^3/3$, una sola vez
+(construir $A - sI$ solo toca la diagonal: $`O(n)`$). Por iteración, las
+dos sustituciones cuestan $n^2 + n^2$ y la norma $\sim 2n$; al final,
+el cociente de Rayleigh $\sim 2n^2$. En total,
+
+```math
+\sim 2(m+1)n^2 + \frac{2n^3}{3} .
+```
+
+El $n^3$ viene únicamente de LU: si la matriz ya estaba factorizada,
+la potencia inversa cuesta lo mismo que la directa. (Y si $m \approx n$,
+cosa común, los dos métodos son $`O(n^3)`$.)
+
+**Para pensar.**
+
+- Agreguen a `potencia` un criterio de paro con `cambio_relativo`,
+  como en `potencia_inversa` (problema 4.23 del libro). Prueben con
+  `crear_prueba(20, 21)`: el libro dice que bastan 6 iteraciones.
+  ¿Qué pasa con $-A$ si no corrigen el signo?
+- Repitan el desarrollo de $`\mathbf{z}^{(k)} = A^k\mathbf{z}^{(0)}`$
+  para la versión normalizada y muestren que $`\mathbf{q}^{(k)}`$ es
+  proporcional a $`A^k\mathbf{q}^{(0)}`$ (problema 4.22).
+- ¿Qué pasa con el método de la potencia si el vector inicial no
+  tiene componente en $\mathbf{v}_0$ ($c_0 = 0$)? Construyan un
+  ejemplo $2\times 2$ y córranlo. (Pista: el redondeo ayuda.)
+
 ## Contenido
 - [`fiscomp/algebra_lineal.py`](../../fiscomp/algebra_lineal.py):
   producto matriz-vector (`mat_vec`), residuo, normas de vectores y de
@@ -1788,8 +2195,10 @@ más $21I$.
   pivoteo (`eliminacion_gaussiana`, `eliminacion_gaussiana_pivoteo`),
   descomposición LU (`descomposicion_lu`, `resolver_lu`), la inversa y
   el determinante (`inversa`, `determinante`), el método de Jacobi
-  (`paso_jacobi`, `cambio_relativo`, `jacobi`) y la matriz de prueba
-  del libro (`crear_prueba`).
+  (`paso_jacobi`, `cambio_relativo`, `jacobi`), los métodos de la
+  potencia para eigenvalores (`producto_punto`, `normalizar`,
+  `cociente_rayleigh`, `potencia`, `potencia_inversa`) y la matriz de
+  prueba del libro (`crear_prueba`).
   Todo con listas de listas, sin NumPy. Aquí se irá acumulando el
   resto del tema.
 - [`analisis_de_error.py`](analisis_de_error.py): el ejemplo de Kahan
@@ -1829,6 +2238,13 @@ más $21I$.
   iteración con la matriz de prueba más $21I$, comparado con
   eliminación gaussiana; lo que pasa sin dominancia diagonal; y el
   tiempo contra la eliminación gaussiana con una matriz tridiagonal.
+- [`potencia.py`](potencia.py): el método de la potencia iteración por
+  iteración, con el error del eigenvalor bajando por un factor
+  $|\lambda_1/\lambda_0|$; los cuatro eigenvalores de la matriz de
+  prueba con la potencia inversa y distintos desplazamientos,
+  comprobados con la traza y el determinante; cuántas iteraciones
+  hacen falta según qué tan cerca está el desplazamiento; y el cambio
+  de signo con un eigenvalor negativo.
 
 Se corren desde la raíz del repositorio (con el `.venv` activado), por
 ejemplo `python3 unidades/09_algebra_lineal/triangulares.py`.
