@@ -333,3 +333,105 @@ if __name__ == "__main__":
     print("\n2 * I (ya no es la identidad: es una Matrix común):")
     print(2 * I)
     print(f"Tipo de 2 * I: {type(2 * I).__name__}")
+
+class TriangularMatrix(Matrix):
+    """
+    Clase base para matrices triangulares (inferiores o superiores).
+    """
+
+    def diagonal(self):
+        """
+        Regresa la lista de los elementos en la diagonal principal.
+
+        Returns
+        -------
+        list
+            Lista con los elementos A_00, A_11, ...
+        """
+        return [self.data[i][i] for i in range(self.rows)]
+
+    def determinant(self):
+        """
+        Calcula el determinante de la matriz triangular.
+        Para una matriz triangular, es el producto de su diagonal.
+
+        Returns
+        -------
+        float
+            El determinante.
+        """
+        det = 1.0
+        for val in self.diagonal():
+            det *= val
+        return det
+
+    def is_singular(self):
+        """
+        Revisa si la matriz es singular (algún elemento de la diagonal es cero).
+
+        Returns
+        -------
+        bool
+            True si es singular, False en caso contrario.
+        """
+        return any(val == 0 for val in self.diagonal())
+
+
+class LowerTriangularMatrix(TriangularMatrix):
+    """
+    Matriz triangular inferior.
+    Garantiza que data[i][j] == 0 para j > i.
+    """
+
+    def __init__(self, data):
+        """
+        Inicializa una matriz triangular inferior.
+        """
+        super().__init__(data)
+        
+        if self.rows != self.cols:
+            raise ValueError("La matriz debe ser cuadrada.")
+            
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if j > i and self.data[i][j] != 0:
+                    raise ValueError(
+                        f"Elemento distinto de cero en la posición [{i}][{j}], "
+                        "que no pertenece a una triangular inferior."
+                    )
+
+    def transpose(self):
+        """
+        Regresa la transpuesta, que es una matriz triangular superior.
+        """
+        return UpperTriangularMatrix(super().transpose().data)
+
+
+class UpperTriangularMatrix(TriangularMatrix):
+    """
+    Matriz triangular superior.
+    Garantiza que data[i][j] == 0 para j < i.
+    """
+
+    def __init__(self, data):
+        """
+        Inicializa una matriz triangular superior.
+        """
+        super().__init__(data)
+        
+        if self.rows != self.cols:
+            raise ValueError("La matriz debe ser cuadrada.")
+            
+        for i in range(self.rows):
+            for j in range(self.cols):
+                if j < i and self.data[i][j] != 0:
+                    raise ValueError(
+                        f"Elemento distinto de cero en la posición [{i}][{j}], "
+                        "que no pertenece a una triangular superior."
+                    )
+
+    def transpose(self):
+        """
+        Regresa la transpuesta, que es una matriz triangular inferior.
+        """
+        return LowerTriangularMatrix(super().transpose().data)

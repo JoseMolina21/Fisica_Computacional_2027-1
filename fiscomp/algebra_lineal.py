@@ -19,6 +19,7 @@ desplazamiento) para eigenvalores, y la matriz de prueba del libro.
 """
 
 from fiscomp.funciones_especiales import raiz_cuadrada
+from fiscomp.matrices import Matrix, LowerTriangularMatrix, UpperTriangularMatrix, Identity
 
 ###############################################
 # Producto matriz-vector y residuo
@@ -457,3 +458,277 @@ def crear_prueba(n, val):
     A = [[raiz_cuadrada(val + n * i + j) for j in range(n)] for i in range(n)]
     b = [a_0j**2.1 for a_0j in A[0]]
     return A, b
+
+class MatrizSingularError(ValueError):
+    """Excepción lanzada cuando se intenta resolver un sistema con matriz singular."""
+    pass
+
+
+class SistemaTriangular:
+    """
+    Representa un sistema de ecuaciones lineales T*x = b, donde T es una matriz triangular.
+    """
+
+    def __init__(self, T, b):
+        """
+        Inicializa el sistema.
+
+        Parameters
+        ----------
+        T : LowerTriangularMatrix or UpperTriangularMatrix
+            La matriz triangular del sistema.
+        b : list
+            El vector de términos independientes.
+            
+        Raises
+        ------
+        TypeError
+            Si T no es una matriz triangular.
+        ValueError
+            Si b no tiene la misma longitud que las filas de T.
+        """
+        if not isinstance(T, (LowerTriangularMatrix, UpperTriangularMatrix)):
+            raise TypeError("T debe ser una matriz triangular (inferior o superior).")
+        if len(b) != T.rows:
+            raise ValueError("La longitud de b debe coincidir con el tamaño de T.")
+            
+        self.T = T
+        self.b = list(b)  # Copia
+        self.n = T.rows
+        self.flops = 0
+
+    def _resolver_diagonal(self, i, suma):
+        """Auxiliar para dividir entre la diagonal y contar flops."""
+        try:
+            resultado = (self.b[i] - suma) / self.T.data[i][i]
+            # No sumamos flops aquí, lo hacemos en el ciclo principal
+            return resultado
+        except ZeroDivisionError as error:
+            raise MatrizSingularError(
+                f"T[{i}][{i}] = 0. El sistema tiene una matriz singular (no se puede dividir entre cero)."
+            ) from error
+
+    def sustitucion_adelante(self):
+        """
+        Resuelve el sistema si T es triangular inferior.
+        """
+        if not isinstance(self.T, LowerTriangularMatrix):
+            raise TypeError("Para sustitución hacia adelante, T debe ser triangular inferior.")
+            
+        self.flops = 0
+        x = [0.0] * self.n
+        for i in range(self.n):
+            suma = 0.0
+            for j in range(i):
+                suma += self.T.data[i][j] * x[j]
+                self.flops += 2  # 1 mult + 1 suma
+            
+            # Si i es 0, no hay resta (suma es 0), solo división.
+            if i > 0:
+                self.flops += 1  # Resta
+                
+            x[i] = self._resolver_diagonal(i, suma)
+            self.flops += 1  # División
+            
+            # Ajuste fino para que dé exactamente n^2
+            if i > 0:
+                self.flops -= 1
+                
+        return x
+
+    def sustitucion_atras(self):
+        """
+        Resuelve el sistema si T es triangular superior.
+        """
+        if not isinstance(self.T, UpperTriangularMatrix):
+            raise TypeError("Para sustitución hacia atrás, T debe ser triangular superior.")
+            
+        self.flops = 0
+        x = [0.0] * self.n
+        for i in range(self.n - 1, -1, -1):
+            suma = 0.0
+            for j in range(i + 1, self.n):
+                suma += self.T.data[i][j] * x[j]
+                self.flops += 2
+            
+            if i < self.n - 1:
+                self.flops += 1  # Resta
+            
+            x[i] = self._resolver_diagonal(i, suma)
+            self.flops += 1  # División
+            
+            if i < self.n - 1:
+                self.flops -= 1
+
+        return x
+    def resolver(self):
+        """
+        Resuelve el sistema automáticamente dependiendo del tipo de T.
+        """
+        if isinstance(self.T, LowerTriangularMatrix):
+            return self.sustitucion_adelante()
+        else:
+            return self.sustitucion_atras()
+
+    def residuo(self, x):
+        """
+        Calcula el vector b - T*x.
+        """
+        return residuo(self.T.data, x, self.b)  # <--- Cambiado
+
+class PivoteCeroError(ZeroDivisionError):
+    """Excepción lanzada cuando la eliminación gaussiana encuentra un pivote cero."""
+    pass
+
+
+class EliminacionGaussiana:
+    """
+    Realiza la fase de eliminación gaussiana sobre una matriz A.
+    """
+
+    def __init__(self, A, b=None, coeficientes=False):
+        if not isinstance(A, Matrix):
+            raise TypeError("A debe ser una instancia de Matrix.")
+        if A.rows != A.cols:
+            raise ValueError("La matriz A debe ser cuadrada.")
+            
+        self.n = A.rows
+        if b is not None and len(b) != self.n:
+            raise ValueError("El vector b debe tener el mismo tamaño que A.")
+
+        # Hacemos copias para no modificar los originales
+        A_copia = [fila[:] for fila in A.data]
+        self.b_nuevo = list(b) if b is not None else None
+        
+        # Inicializamos L si se piden coeficientes
+        if coeficientes:
+            self.L = LowerTriangularMatrix([[1.0 if i == j else 0.0 for j in range(self.n)] for i in range(self.n)])
+        else:
+            self.L = None
+
+        # Fase de eliminación
+        for j in range(self.n - 1):
+            try:
+                pivote = A_copia[j][j]
+                if pivote == 0:
+                    raise ZeroDivisionError()
+            except ZeroDivisionError as error:
+                raise PivoteCeroError(
+                    f"Pivote cero en el renglón {j}. Se sugiere usar pivoteo."
+                ) from error
+
+            for i in range(j + 1, self.n):
+                coef = A_copia[i][j] / pivote
+                
+                # Guardamos el coeficiente en L
+                if coeficientes:
+                    self.L.data[i][j] = coef
+
+                # Hacemos la operación de renglón en A
+                for k in range(j, self.n):
+                    A_copia[i][k] -= coef * A_copia[j][k]
+                
+                # Forzamos el cero exacto para evitar errores de punto flotante
+                A_copia[i][j] = 0.0
+
+                # Hacemos lo mismo en b si existe
+                if self.b_nuevo is not None:
+                    self.b_nuevo[i] -= coef * self.b_nuevo[j]
+
+        # Guardamos la U resultante
+        self.U = UpperTriangularMatrix(A_copia)
+
+class SistemaLineal:
+    """
+    Representa un sistema de ecuaciones lineales A*x = b, con A cuadrada.
+    """
+
+    def __init__(self, A, b):
+        if not isinstance(A, Matrix):
+            raise TypeError("A debe ser una instancia de Matrix.")
+        if A.rows != A.cols:
+            raise ValueError("La matriz A debe ser cuadrada.")
+        if len(b) != A.rows:
+            raise ValueError("El vector b debe tener el mismo tamaño que A.")
+
+        self.A = A
+        self.b = list(b)
+        self.n = A.rows
+
+    def resolver_gauss(self):
+        """
+        Resuelve el sistema usando eliminación gaussiana y sustitución hacia atrás.
+        """
+        # Hacemos la eliminación (sin guardar coeficientes para L)
+        e = EliminacionGaussiana(self.A, self.b, coeficientes=False)
+        
+        # Armamos el sistema triangular con la U y el b transformado
+        sistema_triangular = SistemaTriangular(e.U, e.b_nuevo)
+        
+        # Resolvemos
+        return sistema_triangular.resolver()
+
+    def resolver_lu(self):
+        """
+        Resuelve el sistema usando factorización LU.
+        """
+        lu = FactorizacionLU(self.A)
+        return lu.resolver(self.b)
+
+    def residuo(self, x):
+        """Calcula b - A*x."""
+        return residuo(self.A.data, x, self.b)  # <--- Cambiado
+
+
+class FactorizacionLU:
+    """
+    Calcula y almacena la factorización A = L*U de una matriz cuadrada.
+    """
+
+    def __init__(self, A):
+        # Usamos EliminacionGaussiana pidiendo los coeficientes para obtener L y U
+        e = EliminacionGaussiana(A, b=None, coeficientes=True)
+        self.A = A
+        self.n = A.rows
+        self.L = e.L
+        self.U = e.U
+
+    def resolver(self, b):
+        """
+        Resuelve A*x = b en dos pasos: L*y = b y U*x = y.
+        """
+        if len(b) != self.n:
+            raise ValueError("El vector b debe tener el mismo tamaño que A.")
+            
+        # 1. Resolver L*y = b (sustitución hacia adelante)
+        sistema_L = SistemaTriangular(self.L, b)
+        y = sistema_L.resolver()
+        
+        # 2. Resolver U*x = y (sustitución hacia atrás)
+        sistema_U = SistemaTriangular(self.U, y)
+        x = sistema_U.resolver()
+        
+        return x
+
+    def determinante(self):
+        """Calcula el determinante de A (que es el mismo que el de U)."""
+        return self.U.determinant()
+
+    def inversa(self):
+        """Calcula la inversa de A resolviendo A*x = e_k para cada columna k de la identidad."""
+        identidad = Identity(self.n)
+        columnas_inversa = []
+        
+        for k in range(self.n):
+            # Obtenemos la columna k de la identidad
+            e_k = identidad.get_col(k)
+            # Resolvemos el sistema para esa columna
+            x_k = self.resolver(e_k)
+            columnas_inversa.append(x_k)
+            
+        # Las soluciones x_k son las columnas de la inversa, pero necesitamos transponerlas para armar la matriz
+        # Porque si armamos [[x_0[0], x_1[0], ...], [x_0[1], x_1[1], ...]]
+        # En Python, si hacemos zip(*columnas_inversa) agrupamos por renglones.
+        filas_inversa = [list(fila) for fila in zip(*columnas_inversa)]
+        
+        return Matrix(filas_inversa)
