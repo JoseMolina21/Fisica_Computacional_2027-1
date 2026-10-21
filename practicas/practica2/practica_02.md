@@ -1,7 +1,7 @@
 # Práctica 2 — Programación orientada a objetos: `VectorND` y `Matrix`
 
 Cubre lo visto en la unidad
-[07 (programación orientada a objetos)](../unidades/07_programacion_orientada_a_objetos/).
+[07 (programación orientada a objetos)](../../unidades/07_programacion_orientada_a_objetos/).
 Es el primer paso hacia la unidad de **álgebra lineal numérica**.
 
 ## Parte 1 — `VectorND` (entregada en clase)
@@ -19,7 +19,7 @@ la unidad de álgebra lineal numérica.
 
 ### Contexto
 
-En [`fiscomp/matrices.py`](../fiscomp/matrices.py) ya está la clase
+En [`fiscomp/matrices.py`](../../fiscomp/matrices.py) ya está la clase
 `Matrix`, con:
 
 - El constructor `Matrix(data)`, que guarda una lista de listas
@@ -66,9 +66,9 @@ completen `__mul__`, `escalar * matriz` va a funcionar igual que
 que usamos con `VectorND` en la unidad 07).
 
 **Pista para probar la multiplicación matricial a mano:** con
-$A = \begin{pmatrix}1&2\\3&4\end{pmatrix}$ y
-$B = \begin{pmatrix}5&6\\7&8\end{pmatrix}$,
-$A \times B = \begin{pmatrix}19&22\\43&50\end{pmatrix}$.
+$`A = \begin{pmatrix}1&2\\3&4\end{pmatrix}`$ y
+$`B = \begin{pmatrix}5&6\\7&8\end{pmatrix}`$,
+$`A \times B = \begin{pmatrix}19&22\\43&50\end{pmatrix}`$.
 
 ### Manejo de errores — resumen
 
@@ -97,7 +97,7 @@ demás se siguen corriendo) y no les dicen el valor esperado ni el
 obtenido, solo qué caso falló. Córranlo desde la raíz del repositorio:
 
 ```bash
-python3 practicas/pruebas_practica_02.py
+python3 practicas/practica2/pruebas_practica_02.py
 ```
 
 Mientras `__add__`, `__sub__` o `__mul__` sigan con su

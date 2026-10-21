@@ -1,12 +1,12 @@
 # Práctica 3 — Diferencias finitas
 
 Cubre lo visto en la unidad
-[08 (diferencias finitas)](../unidades/08_diferencias_finitas/).
+[08 (diferencias finitas)](../../unidades/08_diferencias_finitas/).
 
 ## Contexto
 
 En
-[`unidades/08_diferencias_finitas/diferencias_finitas.py`](../unidades/08_diferencias_finitas/diferencias_finitas.py)
+[`unidades/08_diferencias_finitas/diferencias_finitas.py`](../../unidades/08_diferencias_finitas/diferencias_finitas.py)
 ya está implementada `diff_forward(f, x0, h)`, la diferencia hacia
 adelante:
 
@@ -18,7 +18,7 @@ def diff_forward(f, x0, h):
 junto con las funciones de prueba (`const_5`, `ident`, `sqr`,
 `sin_x2`) y un ejemplo de uso. El resto de la unidad — derivado a
 partir de la serie de Taylor en
-[`notas.md`](../unidades/08_diferencias_finitas/notas.md) — lo
+[`notas.md`](../../unidades/08_diferencias_finitas/notas.md) — lo
 completan ustedes, en ese mismo archivo.
 
 ## Ejercicio 1 — `diff_backward` y `diff_central`
@@ -76,9 +76,9 @@ h  diff_forward  error_forward  diff_central  error_central
 ```
 
 Este es el formato que ya esperan
-[`graficar_derivada.gp`](../unidades/08_diferencias_finitas/graficar_derivada.gp)
+[`graficar_derivada.gp`](../../unidades/08_diferencias_finitas/graficar_derivada.gp)
 y
-[`graficar_derivada.py`](../unidades/08_diferencias_finitas/graficar_derivada.py)
+[`graficar_derivada.py`](../../unidades/08_diferencias_finitas/graficar_derivada.py)
 (Ejercicio 5), así que no hace falta tocar esos dos archivos.
 
 ## Ejercicio 4 — ¿dónde está el h óptimo?
@@ -131,11 +131,11 @@ Hay un script de pruebas en
 exista, que tenga el formato de columnas esperado, y que el error de
 `diff_central` sea consistentemente más chico que el de
 `diff_forward` para `h` grande — una consecuencia directa de que
-`diff_central` esté bien implementada ($O(h^2) < O(h)$), no un juicio
+`diff_central` esté bien implementada ($`O(h^2) < O(h)`$), no un juicio
 de estilo. Córranlo desde la raíz del repositorio:
 
 ```bash
-python3 practicas/pruebas_practica_03.py
+python3 practicas/practica3/pruebas_practica_03.py
 ```
 
 No revisa `diff_backward` por separado, ni el contenido exacto de la

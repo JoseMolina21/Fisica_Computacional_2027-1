@@ -13,10 +13,7 @@ Incluye:
 - Suma, resta y multiplicación (escalar y matricial).
 - Transpuesta.
 - Métodos auxiliares para acceder a filas y columnas.
-
-Los métodos aritméticos (__add__, __sub__, __mul__) están marcados
-con TODO para completarse en clase (Práctica 2); el resto ya está
-implementado como base sobre la que se construyen.
+- La clase hija Identity, la matriz identidad de n x n.
 """
 
 
@@ -46,11 +43,11 @@ class Matrix:
     copy():
         Devuelve una copia independiente de la matriz.
     __add__(other):
-        Suma dos matrices del mismo tamaño. (TODO)
+        Suma dos matrices del mismo tamaño.
     __sub__(other):
-        Resta dos matrices del mismo tamaño. (TODO)
+        Resta dos matrices del mismo tamaño.
     __mul__(other):
-        Multiplica la matriz por un escalar o por otra matriz. (TODO)
+        Multiplica la matriz por un escalar o por otra matriz.
     """
 
     def __init__(self, data):
@@ -129,18 +126,14 @@ class Matrix:
         ValueError
             Si `self` y `other` no tienen las mismas dimensiones.
         """
-        if not isinstance(other, Matrix):
-            raise TypeError("Solo se puede sumar otra Matrix")
         if self.shape() != other.shape():
-            raise ValueError("Las matrices deben tener la misma forma")
-
-        resultado = []
-        for i in range(self.rows):
-            fila = []
-            for j in range(self.cols):
-                fila.append(self.data[i][j] + other.data[i][j])
-            resultado.append(fila)
-        return Matrix(resultado)
+            raise ValueError("Las matrices deben tener las mismas dimensiones.")
+        return Matrix(
+            [
+                [self.data[i][j] + other.data[i][j] for j in range(self.cols)]
+                for i in range(self.rows)
+            ]
+        )
 
     def __sub__(self, other):
         """
@@ -159,11 +152,10 @@ class Matrix:
         ValueError
             Si `self` y `other` no tienen las mismas dimensiones.
         """
-        if not isinstance(other, Matrix):
-            raise TypeError("Solo se puede restar otra Matrix")
         if self.shape() != other.shape():
-            raise ValueError("Las matrices deben tener la misma forma")
-        return self + (other * -1)
+            raise ValueError("Las matrices deben tener las mismas dimensiones.")
+        return self + other * -1
+
     def __mul__(self, other):
         """
         Multiplicación por escalar o por otra matriz.
@@ -186,39 +178,109 @@ class Matrix:
         TypeError
             Si el tipo de `other` no es soportado.
         """
-        # Caso 1: escalar
         if isinstance(other, (int, float)):
-            resultado = []
-            for i in range(self.rows):
-                fila = []
-                for j in range(self.cols):
-                    fila.append(self.data[i][j] * other)
-                resultado.append(fila)
-            return Matrix(resultado)
+            return Matrix(
+                [
+                    [self.data[i][j] * other for j in range(self.cols)]
+                    for i in range(self.rows)
+                ]
+            )
 
-        # Caso 2: otra Matrix
         if isinstance(other, Matrix):
             if self.cols != other.rows:
-                raise ValueError(
-                    "Las columnas de self deben coincidir con los renglones de other"
-                )
-            resultado = []
-            for i in range(self.rows):
-                fila = []
-                for j in range(other.cols):
-                    suma = 0
-                    for k in range(self.cols):
-                        suma += self.data[i][k] * other.data[k][j]
-                    fila.append(suma)
-                resultado.append(fila)
-            return Matrix(resultado)
+                raise ValueError("Dimensiones incompatibles para multiplicación.")
+            result = [
+                [
+                    sum(self.data[i][k] * other.data[k][j] for k in range(self.cols))
+                    for j in range(other.cols)
+                ]
+                for i in range(self.rows)
+            ]
+            return Matrix(result)
 
-        # Caso 3: tipo no soportado
-        raise TypeError("Solo se puede multiplicar por un número o por otra Matrix")
+        raise TypeError("Operación no soportada.")
 
-    # Una vez completado __mul__, esta línea hace que `escalar * matriz`
-    # funcione igual que `matriz * escalar` (mismo truco que en VectorND).
     __rmul__ = __mul__
+
+
+class Identity(Matrix):
+    """
+    Matriz identidad de n x n: unos en la diagonal y ceros fuera de ella.
+
+    Es una clase hija de Matrix: hereda shape(), get_row(), get_col(),
+    transpose(), copy() y las operaciones +, - y *. Solo cambia dos
+    cosas:
+
+    - El constructor recibe la dimensión n en lugar de una lista de
+      listas, y arma esa lista él mismo.
+    - La multiplicación I * A sobreescribe la de Matrix: como I A = A,
+      regresa una copia de A sin hacer las n^3 multiplicaciones.
+
+    Las operaciones heredadas regresan una Matrix común, no una
+    Identity: 2 * I o I + A ya no son la identidad.
+
+    Examples
+    --------
+    >>> I = Identity(3)
+    >>> I.shape()
+    (3, 3)
+    >>> I.get_row(1)
+    [0.0, 1.0, 0.0]
+    """
+
+    def __init__(self, n: int):
+        """
+        Crea la matriz identidad de n x n.
+
+        Parameters
+        ----------
+        n : int
+            Dimensión de la matriz (número de filas y de columnas).
+
+        Raises
+        ------
+        ValueError
+            Si n es menor que 1.
+        """
+        if n < 1:
+            raise ValueError("La dimensión n debe ser al menos 1.")
+        data = [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
+        # El constructor de Matrix (la clase madre) guarda data, rows y cols.
+        super().__init__(data)
+
+    def __mul__(self, other):
+        """
+        Multiplicación I * other.
+
+        Si other es una Matrix con n filas, el resultado es una copia de
+        other (porque I A = A), sin hacer ninguna operación. Para un
+        escalar se usa el método de Matrix: I * 2 es una Matrix con
+        doses en la diagonal.
+
+        (A * I, con la identidad a la derecha, usa el __mul__ de A, que
+        es el de Matrix, y sí hace todas las multiplicaciones.)
+
+        Parameters
+        ----------
+        other : int, float, Matrix
+
+        Returns
+        -------
+        Matrix
+
+        Raises
+        ------
+        ValueError
+            Si other es una Matrix cuyo número de filas no es n.
+        TypeError
+            Si el tipo de other no es soportado.
+        """
+        if isinstance(other, Matrix):
+            if self.cols != other.rows:
+                raise ValueError("Dimensiones incompatibles para multiplicación.")
+            return other.copy()
+        # Para escalares (o tipos no soportados) usamos el de la clase madre.
+        return super().__mul__(other)
 
 
 if __name__ == "__main__":
@@ -240,13 +302,13 @@ if __name__ == "__main__":
     print(B)
 
     print("\nA + B:")
-    print(A + B)  # TODO: implementar suma
+    print(A + B)
 
     print("\nA - B:")
-    print(A - B)  # TODO: implementar resta
+    print(A - B)
 
     print("\nA * 2 (escalar):")
-    print(A * 2)  # TODO: implementar multiplicación por escalar
+    print(A * 2)
     print("\n2 * A (escalar, del otro lado):")
     print(2 * A)
 
@@ -255,7 +317,19 @@ if __name__ == "__main__":
     print("\nC:")
     print(C)
     print("\nA * C (matricial):")
-    print(A * C)  # TODO: implementar multiplicación de matrices
+    print(A * C)
 
     print("\nTranspuesta de A:")
     print(A.transpose())
+
+    I = Identity(3)
+    print("\nIdentidad de 3 x 3:")
+    print(I)
+    print(f"¿I es una Matrix? {isinstance(I, Matrix)}")
+    print("\nI * C (regresa una copia de C sin multiplicar):")
+    print(I * C)
+    print("\nA * I (usa la multiplicación de Matrix):")
+    print(A * I)
+    print("\n2 * I (ya no es la identidad: es una Matrix común):")
+    print(2 * I)
+    print(f"Tipo de 2 * I: {type(2 * I).__name__}")
